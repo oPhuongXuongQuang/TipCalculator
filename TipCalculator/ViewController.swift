@@ -8,61 +8,121 @@
 import UIKit
 
 class ViewController: UIViewController {
-  
-  @IBOutlet var totalTextField : UITextField!
-  @IBOutlet var taxPctSlider : UISlider!
-  @IBOutlet var taxPctLabel : UILabel!
-  @IBOutlet var resultsTextView : UITextView!
-  let tipCalc = TipCalculatorModel(total: 33.25, taxPct: 0.06)
- 
-  func refreshUI() {
-    // 1
-    totalTextField.text = String(format: "%0.2f", tipCalc.total)
-    // 2
-    taxPctSlider.value = Float(tipCalc.taxPct) * 100.0
-    // 3
-    taxPctLabel.text = "Tax Percentage (\(Int(taxPctSlider.value))%)"
-    // 4
-    resultsTextView.text = ""
-  }
+    @IBOutlet var totalTextField : UITextField!
+    @IBOutlet var taxPctSlider : UISlider!
+    @IBOutlet var taxPctLabel : UILabel!
+    @IBOutlet var tipAmountLabel : UILabel!
+    @IBOutlet var plusResultLabel : UILabel!
+    @IBOutlet var subResultLabel : UILabel!
 
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    // Do any additional setup after loading the view, typically from a nib.
-    refreshUI()
-  }
-  
-  override func didReceiveMemoryWarning() {
-    super.didReceiveMemoryWarning()
-    // Dispose of any resources that can be recreated.
-  }
-  
-  @IBAction func calculateTapped(sender : AnyObject) {
-    // 1
-    tipCalc.total = Double((totalTextField.text! as NSString).doubleValue)
-    // 2
-    let possibleTips = tipCalc.returnPossibleTips()
-    var results = ""
-    // 3
-    var keys = Array(possibleTips.keys)
-    keys.sortInPlace()
-    for tipPct in keys {
-      let tipValue = possibleTips[tipPct]!
-      let prettyTipValue = String(format:"%.2f", tipValue)
-      results += "\(tipPct)%: \(prettyTipValue)\n"
+    let tipCalc = TipCalculatorModel(total: 33.25, taxPct: 0.06)
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Do any additional setup after loading the view, typically from a nib.
+        
+        totalTextField.becomeFirstResponder()
+        // Load Settings
+        let defaults = NSUserDefaults.standardUserDefaults()
+        let settings = defaults.objectForKey("Settings")
+        if settings != nil {
+            if let data = settings as? NSData {
+                let settingObj = NSKeyedUnarchiver.unarchiveObjectWithData(data) as! SettingModel
+                taxPctSlider.value = settingObj.defaultPercentage
+                tipCalc.taxPct = Double(settingObj.defaultPercentage)
+                taxPctSlider.minimumValue = settingObj.minTip
+                taxPctSlider.maximumValue = settingObj.maxTip
+            }
+        }
+        
+        // Load Total
+        let dateData = defaults.objectForKey("Date")
+        if dateData != nil {
+            let oldDate = dateData as! NSDate
+            let distance = oldDate.timeIntervalSinceDate(NSDate()) / 60
+            if abs(distance) > 10 {
+                defaults.removeObjectForKey("Date")
+                defaults.synchronize()
+            } else {
+                totalTextField.text = defaults.objectForKey("Total") as! NSString as String
+            }
+        }
+        refreshUI()
+        calculateTip()
     }
-    // 5
-    resultsTextView.text = results
-  }
+    
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        // Reload settings
+        let defaults = NSUserDefaults.standardUserDefaults()
+        let settings = defaults.objectForKey("Settings")
+        if settings != nil {
+            if let data = settings as? NSData {
+                let settingObj = NSKeyedUnarchiver.unarchiveObjectWithData(data) as! SettingModel
+                taxPctSlider.minimumValue = settingObj.minTip
+                taxPctSlider.maximumValue = settingObj.maxTip
+            }
+        }
+    }
 
-  @IBAction func taxPercentageChanged(sender : AnyObject) {
-    tipCalc.taxPct = Double(taxPctSlider.value) / 100.0
-    refreshUI()
-  }
-  
-  @IBAction func viewTapped(sender : AnyObject) {
-    totalTextField.resignFirstResponder()
-  }
-  
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+
+    func refreshUI() {
+        calculateTipAmount()
+        taxPctLabel.text = "Tip (\(String(format: "%.2f", Float(taxPctSlider.value)))%)"
+    }
+
+    func calculateTipAmount() {
+        let tipAmount = tipCalc.total * tipCalc.taxPct
+        tipAmountLabel.text = formatCurrency(Float(tipAmount))
+    }
+
+    func calculateTip() {
+        tipCalc.total = Double((totalTextField.text! as NSString).doubleValue)
+        let plusResult = tipCalc.total + tipCalc.total * tipCalc.taxPct
+        let subResult = tipCalc.total - tipCalc.total * tipCalc.taxPct
+        
+        plusResultLabel.text = formatCurrency(Float(plusResult))
+        subResultLabel.text = formatCurrency(Float(subResult))
+    }
+    
+    func formatCurrency(value: Float) -> String {
+        let num = NSNumber(float: value)
+        let formatter = NSNumberFormatter()
+        formatter.numberStyle = NSNumberFormatterStyle.CurrencyStyle
+        formatter.locale = NSLocale.currentLocale()
+        return formatter.stringFromNumber(num)!
+    }
+
+    @IBAction func taxPercentageChanged(sender : AnyObject) {
+        tipCalc.taxPct = Double(taxPctSlider.value) / 100.0
+        refreshUI()
+        calculateTip()
+    }
+
+    @IBAction func viewTapped(sender : AnyObject) {
+        totalTextField.resignFirstResponder()
+    }
+
+    @IBAction func tipIsEditing() {
+        if totalTextField.text == "" {
+            tipCalc.total = 0
+        } else {
+            tipCalc.total = Double(totalTextField.text!)!
+        }
+        calculateTipAmount()
+        calculateTip()
+    }
+
+    @IBAction func saveTotal() {
+        let defaults = NSUserDefaults.standardUserDefaults()
+        defaults.setObject(totalTextField.text, forKey: "Total")
+        defaults.setObject(NSDate(), forKey: "Date")
+        defaults.synchronize()
+    }
 }
 

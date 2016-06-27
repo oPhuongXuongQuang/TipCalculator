@@ -4,7 +4,7 @@
 
 Submitted by: **QuangPX**
 
-Time spent: **3** hours spent in total
+Time spent: **6** hours spent in total
 
 ## User Stories
 
@@ -21,13 +21,14 @@ The following **optional** features are implemented:
 
 The following **additional** features are implemented:
 
-- [ ] List anything else that you can get done to improve the app functionality!
+- [x] Support min and max value for tips.
+- [x] Support plus and substract result.
 
 ## Video Walkthrough  
 
 Here's a walkthrough of implemented user stories:
 
-![Video Walkthrough](http://i.imgur.com/OlI2hWO.gif)
+![Video Walkthrough](http://i.imgur.com/99WkDxd.gif)
 
 GIF created with [LiceCap](http://www.cockos.com/licecap/).
 
